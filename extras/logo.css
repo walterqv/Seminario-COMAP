@@ -1,0 +1,20 @@
+.reveal .slide-logo {
+  display: block;
+  position: fixed;
+  bottom: unset !important;
+  right: unset !important;
+  top: 5px;
+  left: 12px;
+  height: 100px !important;
+  width: 100px !important;
+  max-width: unset !important;
+  max-height: unset !important;
+}
+
+.center h2 {
+  text-align: center;
+}
+
+.center h3 {
+  text-align: center;
+}

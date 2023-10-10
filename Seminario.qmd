@@ -1,0 +1,209 @@
+---
+title: "Ciencia de Datos con R: Riesgo de Crédito"
+subtitle: "Seminario Internacional de Matemática y Estadística"
+format: 
+  revealjs:
+    transition: convex
+    preview-links: auto
+    theme: default
+    slide-number: true
+    logo: extras/comap.jpeg
+    css: extras/logo.css
+    incremental: true
+editor: visual
+author: Walter Quispe Vargas, PhD
+institute: "Colegio de Matemáticos del Perú, Region Cusco"
+date: today
+lang: es
+footer: <https://walterqv.github.io/website/>
+engine: knitr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+## Contenido {.center}
+
+-   Día 1
+
+    -   Introducción
+
+    -   Ciencia de Datos con R
+
+-   Día 2
+
+    -   Aplicación: Riesgo de Crédito
+
+## Introducción {.center}
+
+### ¿Que es Ciencia de Datos? {.center}
+
+-   Ciencia de Datos: `Es el estudio de extraer valor de los datos` ([Wings, 2019](https://doi.org/10.1162/99608f92.e26845b4)), Harvard Data Science Review.
+-   Estadística: `Es la ciencia de aprender de los datos y medir, controlar y comunicar la incertidumbre`, American Statistical Association.
+-   Academia: `Falta de conseso` para describir los principios fundamentales, la experiencia, las habilidades o la base de conocimientos para ser un científicos de datos.
+
+## Introducción {.center}
+
+-   Científico de Datos : `The Sexiest Job of the 21st Century` ([Davenport & Patil, 2012](https://hbr.org/2012/10/data-scientist-the-sexiest-job-of-the-21st-century)), Harvard Business Review.
+-   El término científico de datos se volvió útil para hacer la distinción entre, aquellos con `experiencia organizando y analizando datos, escribiendo código rápido y eficiente`, de aquellos con `más experiencia teórica Matemática, Estadística y Computación`. ([Irizarry, 2020](https://doi.org/10.1162/99608f92.dd363929)) Harvard Data Science Review.
+
+## Introducción {.center}
+
+-   La ciencia de datos: "Es un término `general` que describe todos los procesos complejos y de varios pasos utilizados para extraer valor de los datos" ([Irizarry, 2020](https://doi.org/10.1162/99608f92.dd363929)), Harvard Data Science Review.
+
+::: r-stack
+![](extras/ds.png){.fragment .absolute top="300" left="300" width="400" height="1000"}
+:::
+
+## Ciencia de Datos con R {.center}
+
+-   Recursos:
+
+    -   [R for Data Science (2e)](https://r4ds.hadley.nz)
+    -   [R Para Ciencia de Datos (1e)](https://es.r4ds.hadley.nz)
+    -   [Tidy Modeling with R](https://www.tmwr.org)
+
+::: {.fragment .highlight-green}
+-   Pasos para un proyecto de ciencia de datos
+:::
+
+::: r-stack
+![](extras/dswr.png){.fragment .absolute top="450" left="200" width="600" height="200"}
+:::
+
+## Ciencia de Datos con R {.center}
+
+-   Pre Requisitos:
+
+    -   [R](https://cloud.r-project.org)
+    -   [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+    -   [MiKTeX](https://miktex.org/download)
+    -   [RStudio](https://posit.co/download/rstudio-desktop/)
+    -   [Quarto](https://quarto.org)
+    -   [Tidyverse](https://www.tidyverse.org)
+    -   [Tidymodels](https://www.tidymodels.org)
+    -   [Git](https://git-scm.com) y [GitHub](https://github.com/)
+
+## Primeros Pasos {.scrollable}
+
+::: panel-tabset
+### DataFrame
+
+```{r}
+#| echo: true
+library(tidyverse)
+library(kableExtra)
+library(datos)
+library(janitor)
+# millas |> view()
+millas |> 
+  head(30) |> 
+  kable()|> 
+  row_spec(seq(1,30,2), background="cyan") %>% 
+  kable_styling(full_width=FALSE)
+```
+
+### Count
+
+```{r}
+#| echo: true
+millas |> 
+  count(fabricante) |> 
+  kable()|> 
+  row_spec(seq(1,15,2), background="cyan") %>% 
+  kable_styling(full_width=FALSE)
+```
+
+### Summary
+
+```{r}
+#| echo: true
+millas |> 
+  select(cilindrada) |> 
+  summary() |> 
+  kable()|> 
+  row_spec(seq(1,6,2), background="cyan") %>% 
+  kable_styling(full_width=FALSE)
+```
+
+### Skim
+
+```{r}
+#| echo: true
+library(skimr)
+millas |>
+  skim() |> 
+  kable()|> 
+  row_spec(seq(1,11,2), background="cyan") %>% 
+  kable_styling(full_width=FALSE)
+```
+
+### Ggplot
+
+```{r}
+#| echo: true
+theme_set(theme_minimal())
+millas |>
+  ggplot(aes(clase))+
+  geom_bar(colour='magenta',fill='magenta',alpha=0.5)+
+  geom_text(stat='count', aes(label = ..count..), vjust = -1)+
+  scale_y_continuous(limits = c(0, 70))
+```
+
+```{r}
+#| echo: true
+millas |>
+  count(cilindros) |>
+  mutate(cilindros=as.character(cilindros)) |> 
+  ggplot(aes(x = "", y = n, fill = cilindros))+
+  geom_col(color = "gray")+
+  coord_polar(theta = "y")+
+  geom_text(aes(label = n),
+            color = "white",
+            position = position_stack(vjust = 0.5,))+
+  theme_void()
+```
+
+```{r}
+#| echo: true
+millas |>
+  ggplot(aes(cilindrada, fill=..count..))+
+  geom_histogram(color='gray')+
+  scale_fill_gradient(low="white", high="ForestGreen")+
+  guides(fill=F)
+```
+
+```{r}
+#| echo: true
+millas |>
+  ggplot(aes(cilindrada))+
+  geom_histogram(aes(y= ..density..),color='gray', fill='white')+
+  geom_density(color='ForestGreen', fill='ForestGreen', alpha=0.4)
+```
+
+```{r}
+#| echo: true
+millas |>
+  ggplot(aes(x=cilindrada, y=""))+
+  geom_boxplot(color='ForestGreen', fill='ForestGreen', alpha=0.4)+
+  geom_jitter(alpha=0.4)
+```
+
+```{r}
+#| echo: true
+theme_set(theme_minimal())
+millas |>
+ ggplot(mapping = aes(x = cilindrada, y = autopista)) +
+ geom_point(mapping = aes(color = traccion))+
+ geom_smooth()
+```
+
+```{r}
+#| echo: true
+millas |>
+ ggplot(mapping = aes(x = cilindrada, y = autopista)) +
+ geom_point(mapping = aes(color = traccion))+
+ facet_wrap(~ clase, nrow = 2)
+```
+:::
