@@ -10,6 +10,7 @@ format:
     logo: extras/comap.jpeg
     css: extras/logo.css
     incremental: true
+    embed-resources: true
 editor: visual
 author: Walter Quispe Vargas, PhD
 institute: "Colegio de Matemáticos del Perú, Region Cusco"
