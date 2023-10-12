@@ -42,7 +42,7 @@ knitr::opts_chunk$set(cache = TRUE, echo = FALSE, warning = FALSE, message = FAL
 
 -   Ciencia de Datos: `Es el estudio de extraer valor de los datos` ([Wings, 2019](https://doi.org/10.1162/99608f92.e26845b4)), Harvard Data Science Review.
 -   Estadística: `Es la ciencia de aprender de los datos y medir, controlar y comunicar la incertidumbre`, American Statistical Association.
--   Academia: `Falta de conseso` para describir los principios fundamentales, la experiencia, las habilidades o la base de conocimientos para ser un científicos de datos.
+-   Academia: `Falta de consenso` para describir los principios fundamentales, la experiencia, las habilidades o la base de conocimientos para ser un científicos de datos.
 
 ## Introducción {.center}
 
@@ -109,7 +109,7 @@ millas |>
 
 ```{r}
 #| echo: true
-millas |> 
+millas |>
   count(fabricante) |> 
   kable()|> 
   row_spec(seq(1,15,2), background="cyan") %>% 
@@ -168,19 +168,22 @@ millas |>
 
 ```{r}
 #| echo: true
-millas |>
+library(plotly)
+p <- millas |>
   ggplot(aes(cilindrada, fill=..count..))+
   geom_histogram(color='gray')+
   scale_fill_gradient(low="white", high="ForestGreen")+
   guides(fill=F)
+ggplotly(p)
 ```
 
 ```{r}
 #| echo: true
-millas |>
+(millas |>
   ggplot(aes(cilindrada))+
   geom_histogram(aes(y= ..density..),color='gray', fill='white')+
-  geom_density(color='ForestGreen', fill='ForestGreen', alpha=0.4)
+  geom_density(color='ForestGreen', fill='ForestGreen', alpha=0.4))|>
+  ggplotly()
 ```
 
 ```{r}
@@ -194,10 +197,11 @@ millas |>
 ```{r}
 #| echo: true
 theme_set(theme_minimal())
-millas |>
+(millas |>
  ggplot(mapping = aes(x = cilindrada, y = autopista)) +
  geom_point(mapping = aes(color = traccion))+
- geom_smooth()
+ geom_smooth()) |> 
+  ggplotly()
 ```
 
 ```{r}

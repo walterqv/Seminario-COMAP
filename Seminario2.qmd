@@ -1,0 +1,475 @@
+---
+title: "Ciencia de Datos con R: Riesgo de Crédito"
+subtitle: "Seminario Internacional de Matemática y Estadística"
+format: 
+  revealjs:
+    transition: convex
+    preview-links: auto
+    theme: default
+    slide-number: true
+    logo: extras/comap.jpeg
+    css: extras/logo.css
+    incremental: true
+    embed-resources: true
+editor: visual
+author: Walter Quispe Vargas, PhD
+institute: "Colegio de Matemáticos del Perú, Region Cusco"
+date: today
+lang: es
+footer: <https://walterqv.github.io/website/>
+engine: knitr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+## Riesgo de Crédito {.center}
+
+::: r-stack
+![](extras/banco.png){.fragment .absolute top="100" left="100" width="250" height="300"}
+
+![](extras/presta.png){.fragment .absolute top="100" left="600" width="220" height="280"}
+
+![](extras/dinero.png){.fragment .absolute top="80" left="400" width="150" height="150"}
+
+![](extras/nopuede.png){.fragment .absolute top="300" left="400" width="150" height="150"}
+:::
+
+<br> <br> <br> <br> <br> <br> <br>
+
+-   La posibilidad de una **pérdida**, resultante de que el prestatario no pague un préstamo o no cumpla con sus obligaciones contractuales.
+
+## Pérdida Creditícia Esperada (ECL) {.center}
+
+-   $$ECL = PD \times LGD \times EAD$$
+
+-   $PD$: Probabilidad de Impago (*Probability of Default*)
+
+-   $LGD$: Pérdida dado el Impago (*Loss Given Default*)
+
+-   $EAD$: Exposición al Impago (*Exposure At Default*)
+
+::: r-stack
+![](extras/riesgo.png){.fragment .absolute top="450" left="300" width="400" height="200"}
+:::
+
+## Modelo de Pérdida dado el Impago{.center}
+
+::: r-stack
+![](extras/proceso.png){.fragment .fade-up .absolute top="100" left="0" width="1500" height="260"}
+:::
+
+<br> <br> <br> <br> <br>
+
+-   ::: {.fragment .highlight-blue .grow .absolute top="380" left="400"}
+    **CONTEXTO**
+    :::
+
+- LGD es la magnitud de la pérdida si el incumplimiento realmente ocurriese.
+
+- El modelo LGD es desarrollado usando los valores de las variables al momento de que el cliente Impaga.
+
+
+## Modelo de Pérdida dado el Impago{.scrollable}
+
+::: panel-tabset
+
+### Import
+
+```{r}
+#| echo: true
+library(tidyverse)
+library(readxl)
+library(kableExtra)
+lgd <- read.csv('LGD_Mortgage.csv', fileEncoding="UTF-8-BOM")
+```
+
+`Número de Variables:` `r ncol(lgd)` <br> `Número de Obsevaciones:` `r nrow(lgd)`
+
+### DataFrame
+
+```{r}
+#| echo: true
+lgd |>
+  head(30) |> 
+  kable()|> 
+  row_spec(seq(1,30,2), background="cyan") %>% 
+  kable_styling(full_width=FALSE)
+```
+
+### EDA
+
+`lgd`
+
+```{r}
+#| echo: true
+theme_set(theme_minimal())
+library(plotly)
+(lgd |>
+  ggplot(aes(lgd)) +
+  geom_histogram(colour="black",
+                   aes(y = ..count.. , fill = ..count..),
+                   show.legend = FALSE,
+                   bins = 30)+
+  scale_fill_gradient("Count", low="white", high="forestgreen")+
+  xlab("Loss Given Default") ) |> 
+  ggplotly()
+```
+`Variables Numéricas`
+
+```{r}
+#| echo: true
+library(gridExtra)
+theme_set(theme_minimal())
+df <- lgd
+p1 <- df %>% 
+   ggplot(aes(lgd)) +
+  geom_histogram(colour="black",
+                   aes(y=..count..,fill=..count..),
+                   show.legend = FALSE,
+                   bins = 30)+
+  scale_fill_gradient("Count", low="white", high="forestgreen")+
+  xlab("Loss Given Default")
+
+p2 <- df %>% 
+   ggplot(aes(updatedcltv)) +
+  geom_histogram(colour="black",
+                   aes(y=..count..,fill=..count..),
+                   show.legend = FALSE,
+                   bins = 30)+
+  scale_fill_gradient("Count", low="white", high="forestgreen")+
+  xlab("Updated CLTV")
+
+p3 <- df %>% 
+   ggplot(aes(timetoliquidation)) +
+  geom_histogram(colour="black",
+                   aes(y=..count..,fill=..count..),
+                   show.legend = FALSE,
+                   bins = 30)+
+  scale_fill_gradient("Count", low="white", high="forestgreen")+
+  xlab("Time to Liquidation")
+grid.arrange(p1,p2,p3,ncol=3)
+```
+
+
+```{r}
+#| echo: true
+df1 <- lgd
+p4 <- df1 %>% 
+  ggplot(aes(updatedcltv, lgd))+
+  geom_point(alpha = 0.5, color = 'forestgreen')+
+  geom_smooth(method='lm')
+
+p5 <- df1 %>% 
+  ggplot(aes(updatedcltv, lgd, colour = as.factor(updatedcltv_missing)))+
+  geom_point(alpha = 0.5)+
+  labs(colour="Upcltv \nMissing")
+
+grid.arrange(p4,p5,ncol=2)
+
+```
+
+
+```{r}
+#| echo: true
+df1 %>% 
+  ggplot(aes(timetoliquidation, lgd))+
+  geom_point(alpha = 0.5, color = 'forestgreen')+
+  geom_smooth(method='lm')
+```
+
+```{r}
+#| echo: true
+p6 <- df1 %>% 
+  ggplot(aes(singlehome, lgd, fill=as.factor(singlehome), colour = as.factor(singlehome)))+
+  geom_boxplot(alpha = 0.3, show.legend = FALSE)
+
+p7 <- df1 %>% 
+  ggplot(aes(occupied, lgd, fill = as.factor(occupied), colour = as.factor(occupied)))+
+  geom_boxplot(alpha = 0.3, show.legend = FALSE)
+
+grid.arrange(p6,p7,ncol=2)
+```
+
+### Moody's
+
+```{r}
+#| echo: true
+library(tidymodels)
+df1 <- df %>% select(lgd,
+                     updatedcltv_missing,
+                     updatedcltv,
+                     timetoliquidation,
+                     occupied,
+                     singlehome)
+
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+lm_fit <- lm_spec %>%
+  fit(lgd ~ updatedcltv_missing + 
+        updatedcltv+
+        timetoliquidation+
+        occupied+
+        singlehome, 
+      data = df1)
+
+lm_fit %>% 
+  tidy() %>% 
+  select(term,estimate, p.value) %>% 
+   kable(booktabs = TRUE,
+        align = 'lrr',
+        linesep = "",
+        caption = "Estimated Coefficients",
+        format.args = list(big.mark = ",",digits = 3)) %>%
+  row_spec(seq(1,6,2), background="cyan") %>% 
+  kable_styling(full_width=FALSE)
+```
+
+$$LGD =-1.746+32.855*updatedcltv\_missing+0.325*updatedcltv+$$ 
+$$0.318*timetoliquidation -3.929*occupied-3.594*singlehome$$
+
+```{r}
+#| echo: true
+x <- glance(lm_fit) %>% select(c(1,8,9))
+lm_model <- lm(lgd ~ updatedcltv_missing + 
+        updatedcltv+
+        timetoliquidation+
+        occupied+
+        singlehome, 
+      data = df1)
+library(modelr)
+MAE <- mae(lm_model,df1)
+MSE <- mse(lm_model,df1)
+AIC <- x$AIC
+BIC <- x$BIC
+R2 <- x$r.squared
+
+x <- as_tibble(cbind(MAE,AIC,BIC,MSE,R2))
+x %>% kable(booktabs = TRUE,
+        align = 'ccccc',
+        linesep = "",
+        caption = "Evaluation Metrics",
+        format.args = list(big.mark = ",",digits = 4, scientific=FALSE)) %>%
+  row_spec(1,background="cyan") %>% 
+  kable_styling(full_width=FALSE)
+```
+`Comparación agrupado por liquidationdate`
+
+```{r}
+#| echo: true
+df %>% 
+  select(liquidationdate,lgd,predlgd) %>% 
+  group_by(liquidationdate) %>% 
+  summarise(lgd_mean = mean(lgd),
+            predlgd_mean = mean(predlgd)) %>% 
+  mutate(liquidationdate = as.Date(paste(liquidationdate,01), format = "%Y%m%d")) %>%
+  ggplot(aes(liquidationdate))+
+  geom_line(aes(y= lgd_mean, color = "Observed"),lwd =1.3,alpha=0.7)+
+  geom_line(aes(y= predlgd_mean,color='Forecast'),lwd=1.3,alpha=0.7)+
+  ylim(0,60)+
+  scale_x_date(breaks = scales::breaks_pretty(20))+
+  theme(axis.text.x=element_text(angle=90,hjust=1),
+        plot.title = element_text(hjust = 0.5))+
+  labs(x = "Liquidation Date", y = "LGD (%)", color = "Legend")+
+  ggtitle("LGD - All Loans")
+```
+::: 
+
+
+## Modelo ML para LGD{.scrollable}
+
+::: panel-tabset
+
+### Selección
+
+- Variables y Modelo [ver](https://github.com/walterqv/Simposio-UNSAAC)
+
+### XGBoost
+
+```{r}
+#| echo: true
+detach("package:modelr", unload=TRUE)
+#etach_package("modelr", TRUE)
+library(doParallel)
+library(xgboost)
+df1 <- df %>% select(lgd,
+                     fico,
+                     loanage,
+                     updatedcltv,
+                     timetoliquidation,
+                     occupied,
+                     singlehome)
+lgd_train <- df1
+# Define Xgboost Model
+xgb_spec <- boost_tree(
+  trees = 1000,
+  tree_depth = tune(),
+  min_n = tune(),
+  loss_reduction = tune(),
+  sample_size = tune(),
+  mtry = tune(),
+  learn_rate = tune(),
+) %>%
+  set_engine("xgboost", objective = "reg:squarederror") %>%
+  set_mode("regression")
+
+# Define Grid: Space filling Design 
+xgb_grid <- grid_latin_hypercube(
+  tree_depth(),
+  min_n(),
+  loss_reduction(),
+  sample_size = sample_prop(),
+  finalize(mtry(), lgd_train),
+  learn_rate(),
+  size = 90
+)
+
+# Define Workflow
+xgb_wf <- workflow() %>%
+  add_formula(lgd ~ .) %>%
+  add_model(xgb_spec)
+
+# Define CV Folds
+set.seed(123)
+lgd_folds <- vfold_cv(lgd_train, strata = lgd)
+
+# High Performance Computation
+all_cores <- parallel::detectCores()
+registerDoParallel(cores = all_cores)
+
+# Tuning: Grid Search
+set.seed(234)
+
+xgb_res <- tune_grid(
+  xgb_wf,
+  resamples = lgd_folds,
+  grid = xgb_grid,
+  control = control_grid(save_pred = TRUE, verbose =TRUE),
+  metrics = metric_set(rmse, rsq, mae)
+)
+```
+Hyperparameters and Evaluation metrics
+
+```{r}
+xgb_res %>%
+  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
+  select(mean, mtry:sample_size) %>%
+  pivot_longer(mtry:sample_size,
+               values_to = "value",
+               names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "RMSE")
+```
+
+
+```{r}
+best_rsq <- select_best(xgb_res, "rmse")
+
+final_xgb <- finalize_workflow(
+  xgb_wf,
+  best_rsq
+)
+
+```
+
+Feature Importance Plot
+
+```{r}
+library(vip)
+vi_score <- final_xgb %>% 
+  fit(data = lgd_train) %>% 
+  pull_workflow_fit() %>% 
+  vi()
+vi_score %>% 
+  ggplot(aes(x=reorder(Variable, Importance),y=Importance, fill=Importance))+
+  geom_bar(stat="identity", position = "dodge")+
+  coord_flip()+
+  ylab("Importance")+
+  xlab("")+
+  guides(fill=F)+
+  scale_fill_gradient(low = "white", high = "Forestgreen")
+```
+
+Evaluation Metrics
+
+```{r}
+df2 <- final_xgb %>%
+  fit(data = lgd_train) %>%
+  predict(new_data = lgd_train) %>%
+  bind_cols(lgd_train)
+
+x <- df2 %>% 
+  metrics(lgd,.pred) %>% 
+  select(.estimate) %>%
+  as.data.frame()
+
+
+MAE <- x[3,1]
+MSE <- (x[1,1])^2
+R2 <- x[2,1]
+
+x <- as_tibble(cbind(MAE,MSE,R2))
+x %>% kable(booktabs = TRUE,
+        align = 'ccc',
+        linesep = "",
+        caption = "Evaluation Metrics",
+        format.args = list(big.mark = ",",digits = 4, scientific=FALSE)) %>%
+  kable_styling(full_width=FALSE)
+  
+```
+
+
+Comparison
+
+```{r}
+df %>%
+  bind_cols(df2$.pred)%>%
+  rename(.pred = "...40") %>%
+  select(liquidationdate,lgd,predlgd,.pred)%>%
+  group_by(liquidationdate) %>%
+  summarise(lgd_mean = mean(lgd),
+            predlgd_mean = mean(predlgd),
+            predlgd_mean_XGB = mean(.pred)) %>%
+  mutate(liquidationdate = as.Date(paste(liquidationdate,01), format = "%Y%m%d")) %>%
+  ggplot(aes(liquidationdate))+
+  geom_line(aes(y= lgd_mean, color = "Observed"),lwd =1.3,alpha=0.7)+
+  geom_line(aes(y= predlgd_mean,color='Forecast'),lwd=1.3,alpha=0.7)+
+  ylim(0,60)+
+  geom_line(aes(y= predlgd_mean_XGB,color='ForecastXGB'),lwd=1.3,alpha=0.7)+
+  ylim(0,60)+
+  scale_x_date(breaks = scales::breaks_pretty(20))+
+  theme(axis.text.x=element_text(angle=90,hjust=1),
+        plot.title = element_text(hjust = 0.5))+
+  labs(x = "Liquidation Date", y = "LGD (%)", color = "Legend")+
+  ggtitle("LGD - All Loans")
+```
+
+Explanation based on SHAP values
+
+```{r}
+library(SHAPforxgboost)
+
+xgb_fit <- final_xgb %>% 
+  fit(data = lgd_train) %>% 
+  extract_fit_parsnip()
+
+lgd_train_X <- lgd_train %>% select(-lgd) %>% as.matrix()
+
+lgd_shape <- shap.prep(
+  xgb_model = extract_fit_engine(xgb_fit),
+  X_train = lgd_train_X
+)
+
+shap.plot.summary(lgd_shape)
+```
+
+:::
+
+
